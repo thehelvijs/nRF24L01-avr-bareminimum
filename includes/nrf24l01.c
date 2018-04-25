@@ -41,18 +41,17 @@
 uint8_t rx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Read pipe address
 uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define READ_PIPE		0									// Number of read pipe
-#define MESSAGE_LENGTH	32									// 0-32 bytes
 //
 //	-AUTO_ACK can be disabled when running on 2MBPS @ <= 32 byte messages.
 //	-250KBPS and 1MBPS with AUTO_ACK disabled lost many packets
 //	if the packet size was bigger than 4 bytes.
 //	-If AUTO_ACK is enabled, tx_address = rx_address.
 //
-#define AUTO_ACK		true								// Auto acknowledgment
+#define AUTO_ACK		false								// Auto acknowledgment
 #define DATARATE		RF_DR_2MBPS							// 250kbps, 1mbps, 2mbps
 #define POWER			POWER_MAX							// Set power (MAX 0dBm..HIGH -6dBm..LOW -12dBm.. MIN -18dBm)
 #define CHANNEL			0x76								// 2.4GHz-2.5GHz channel selection (0x01 - 0x7C)
-#define DYN_PAYLOAD		true								// Dynamic payload enabled			
+#define DYN_PAYLOAD		true								// Dynamic payload enabled
 #define CONTINUOUS		false								// Continuous carrier transmit mode (not tested)
 //
 //	ISR(INT0_vect) is triggered depending on config (only one can be true)
@@ -61,7 +60,7 @@ uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define TX_INTERRUPT	false								// Interrupt when message is sent (TX)
 #define RT_INTERRUPT	false								// Interrupt when maximum re-transmits are reached (MAX_RT)
 //
-//	-PIN map. 
+//	-PIN map.
 //	-If CE or CSN is changed to different PIN e.g. PC0
 //	then change DDRB -> DDRC, PORTB -> PORTC and so on
 //
@@ -198,7 +197,7 @@ void nrf24_init(void)
 	nrf24_write(DYNPD, &data,1);
 
 	//	Enable dynamic payload
-	data = 
+	data =
 	(DYN_PAYLOAD << EN_DPL) |
 	(AUTO_ACK << EN_ACK_PAY) |
 	(AUTO_ACK << EN_DYN_ACK);
@@ -282,19 +281,20 @@ void nrf24_start_listening(void)
 }
 
 uint8_t nrf24_send_message(char *tx_message)
-{
-	//	Clear STATUS register
-	data = (1 << TX_DS) | (1 << MAX_RT);
-	nrf24_write(STATUS,&data,1);
-	
-	uint8_t length = MESSAGE_LENGTH;	//	Message length
+{	
+	uint8_t length = strlen(tx_message);//	Message length
 	nrf24_state(POWERUP);				//	Power up chip
 	nrf24_state(TRANSMIT);				//	Transmit mode
+	//	Clear STATUS register
+	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+	nrf24_write(STATUS,&data,1);
+	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
 	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
+	
 	
 	// Start SPI, load message into TX_PAYLOAD
 	csn_low;
-	spi_send(W_TX_PAYLOAD_NOACK);
+	spi_send(W_TX_PAYLOAD);
 	while (length--) spi_send(*(uint8_t *)tx_message++);
 	csn_high;
 	
@@ -310,6 +310,8 @@ uint8_t nrf24_send_message(char *tx_message)
 	//	Continue listening
 	nrf24_start_listening();
 	
+	memset(tx_message,0,32);
+	
 	return 1;
 }
 
@@ -324,12 +326,16 @@ unsigned int nrf24_available(void)
 const char * nrf24_read_message(void)
 {
 	static char rx_message[32];
+	memset(rx_message,0,32);
 	if (AUTO_ACK) nrf24_write_ack();
 	nrf24_read(R_RX_PL_WID,&data,1);
 	if (data > 0) nrf24_send_spi(R_RX_PAYLOAD,&rx_message,data);
 	//	Clear RX FIFO which will reset interrupt
-	data = (1 << RX_DR) | (1 << MAX_RT);
+	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 	nrf24_write(STATUS,&data,1);
-	nrf24_write(FLUSH_RX,0,0);
-	return rx_message;
+	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
+	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
+	// Check if there is message in array
+	if (strlen(rx_message) > 0) return rx_message;
+	return 0;
 }
