@@ -28,6 +28,8 @@ ISR(INT0_vect)
 ```
 ### Send message
 
+After message is sent, it goes back to listening mode.
+
 ```
 status = nrf24_send_message(tx_message);
 ```
