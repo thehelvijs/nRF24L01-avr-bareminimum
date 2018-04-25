@@ -17,7 +17,7 @@ nRF24L01+ | ATmega328P  | Arduino UNO
 
 ## Software
 
-For testing I used RPi as receiver/sender as well. Follow this tutorial to set up Raspberry Pi http://invent.module143.com/daskal_tutorial/raspberry-pi-3-wireless-pi-to-arduino-communication-with-nrf24l01/
+For testing I used both Raspberry Pi to Arduino and Arduino to Arduino. Follow this tutorial to set up Raspberry Pi http://invent.module143.com/daskal_tutorial/raspberry-pi-3-wireless-pi-to-arduino-communication-with-nrf24l01/
 
 ### Listen to incomming messages
 
