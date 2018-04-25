@@ -28,7 +28,7 @@ By default when there is something on RX register, this ISR gets triggered
 ```
 ISR(INT0_vect) 
 ```
-Message can be stored in string array
+Message can be stored in string array, returns '0' if string array is empty
 ```
 char rx_message[32];
 strcpy(rx_message,nrf24_read_message());
