@@ -24,9 +24,21 @@ For testing I used RPi as receiver/sender as well. Follow this tutorial to set u
 ```
 nrf24_start_listening();
 ```
-By default when there is something on RX register, this ISR gets triggered:
+By default when there is something on RX register, this ISR gets triggered
 ```
 ISR(INT0_vect) 
+```
+Message can be stored in string array
+```
+char rx_message[32];
+strcpy(rx_message,nrf24_read_message());
+```
+And compared later
+```
+if ((strcmp(rx_message,"OFF") == 0))
+{
+    led_off();
+}
 ```
 ### Send message
 
@@ -35,7 +47,7 @@ After message is sent, it goes back to listening mode.
 ```
 status = nrf24_send_message(tx_message);
 ```
-Where status returns '1' on successful send and 'tx_message' is a string set with <string.h>:
+Where status returns '1' on successful send and 'tx_message' is a string set with <string.h>
 ```
 strcpy(tx_message,"Your message here");
 ```
