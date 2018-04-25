@@ -283,18 +283,13 @@ void nrf24_start_listening(void)
 
 uint8_t nrf24_send_message(char *tx_message)
 {
-	//	For printf();
-	//char temp[32];
-	//strcpy(temp,tx_message);
-	
 	//	Clear STATUS register
-	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+	data = (1 << TX_DS) | (1 << MAX_RT);
 	nrf24_write(STATUS,&data,1);
 	
 	uint8_t length = MESSAGE_LENGTH;	//	Message length
 	nrf24_state(POWERUP);				//	Power up chip
 	nrf24_state(TRANSMIT);				//	Transmit mode
-	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
 	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
 	
 	// Start SPI, load message into TX_PAYLOAD
@@ -311,7 +306,6 @@ uint8_t nrf24_send_message(char *tx_message)
 	//	Wait for message to be sent (TX_DS flag raised)
 	nrf24_read(STATUS,&data,1);
 	while(!(data & (1 << TX_DS))) nrf24_read(STATUS,&data,1);
-	//printf("Message sent: %s\n",temp);
 	
 	//	Continue listening
 	nrf24_start_listening();
@@ -334,9 +328,8 @@ const char * nrf24_read_message(void)
 	nrf24_read(R_RX_PL_WID,&data,1);
 	if (data > 0) nrf24_send_spi(R_RX_PAYLOAD,&rx_message,data);
 	//	Clear RX FIFO which will reset interrupt
-	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+	data = (1 << RX_DR) | (1 << MAX_RT);
 	nrf24_write(STATUS,&data,1);
 	nrf24_write(FLUSH_RX,0,0);
-	nrf24_write(FLUSH_TX,0,0);
 	return rx_message;
 }
