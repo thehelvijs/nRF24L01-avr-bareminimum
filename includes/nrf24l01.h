@@ -40,7 +40,6 @@ void nrf24_state(uint8_t state);
 void nrf24_start_listening(void);
 unsigned int nrf24_available(void);
 const char * nrf24_read_message(void);
-void nrf24_send_message(const void *tx_message);
-void print_config(void);
+uint8_t nrf24_send_message(char *tx_message);
 
 #endif /*_NRF24L01_H*/

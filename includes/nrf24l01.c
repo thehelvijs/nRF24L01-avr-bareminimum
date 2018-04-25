@@ -30,12 +30,7 @@
 #include <util/delay.h>
 #include <stdio.h>
 #include <stdbool.h>
-
-//	Set up UART for printf();
-#ifndef BAUD
-#define BAUD 9600
-#endif
-#include "STDIO_UART.h"
+#include <string.h>
 
 //	nRF24L01+ include files
 #include "nrf24l01.h"
@@ -273,6 +268,10 @@ void nrf24_state(uint8_t state)
 
 void nrf24_start_listening(void)
 {
+	//	Clear STATUS register
+	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+	nrf24_write(STATUS,&data,1);
+	
 	nrf24_state(POWERUP);				//	Power up chip
 	nrf24_state(RECEIVE);				//	Receive mode
 	if (AUTO_ACK) nrf24_write_ack();	//	Write acknowledgment
@@ -282,8 +281,12 @@ void nrf24_start_listening(void)
 	_delay_us(150);						//	Settling time
 }
 
-void nrf24_send_message(const void *tx_message)
+uint8_t nrf24_send_message(char *tx_message)
 {
+	//	For printf();
+	//char temp[32];
+	//strcpy(temp,tx_message);
+	
 	//	Clear STATUS register
 	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 	nrf24_write(STATUS,&data,1);
@@ -308,9 +311,12 @@ void nrf24_send_message(const void *tx_message)
 	//	Wait for message to be sent (TX_DS flag raised)
 	nrf24_read(STATUS,&data,1);
 	while(!(data & (1 << TX_DS))) nrf24_read(STATUS,&data,1);
+	//printf("Message sent: %s\n",temp);
 	
 	//	Continue listening
 	nrf24_start_listening();
+	
+	return 1;
 }
 
 unsigned int nrf24_available(void)
@@ -333,26 +339,4 @@ const char * nrf24_read_message(void)
 	nrf24_write(FLUSH_RX,0,0);
 	nrf24_write(FLUSH_TX,0,0);
 	return rx_message;
-}
-
-void print_config(void)
-{
-	printf("Startup successful\n\n nRF24L01+ configured as:\n-------------------------------------------\n");
-	nrf24_read(CONFIG,&data,1);
-	printf("CONFIG		0x%x\n",data);
-	nrf24_read(EN_AA,&data,1);
-	printf("EN_AA			0x%x\n",data);
-	nrf24_read(EN_RXADDR,&data,1);
-	printf("EN_RXADDR		0x%x\n",data);
-	nrf24_read(SETUP_RETR,&data,1);
-	printf("SETUP_RETR		0x%x\n",data);
-	nrf24_read(RF_CH,&data,1);
-	printf("RF_CH			0x%x\n",data);
-	nrf24_read(RF_SETUP,&data,1);
-	printf("RF_SETUP		0x%x\n",data);
-	nrf24_read(STATUS,&data,1);
-	printf("STATUS		0x%x\n",data);
-	nrf24_read(FEATURE,&data,1);
-	printf("FEATURE		0x%x\n",data);
-	printf("-------------------------------------------\n\n");
 }
