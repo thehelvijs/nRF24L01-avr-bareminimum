@@ -23,7 +23,7 @@
 //
 //	Software was tested on ATmega328P and ATmega328PB (PB needs few changes in SPI)
 //	RF module software was tested on - cheap nRF24L01+ from China
-//	All the relevant settings are located in nrf24l01.h file
+//	All the relevant settings are defined in nrf24l01.c file
 //	Some features will be added later, at this moment it is bare minimum to send/receive
 //
 
