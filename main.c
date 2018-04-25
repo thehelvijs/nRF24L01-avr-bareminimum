@@ -20,6 +20,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+//
+//	Software was tested on ATmega328P and ATmega328PB (PB needs few changes in SPI)
+//	RF module software was tested on - cheap nRF24L01+ from China
+//	All the relevant settings are located in nrf24l01.h file
+//	Some feature will be added later, at this moment it is bare minimum to send/receive
+//
+
 //	Set clock frequency
 #ifndef F_CPU
 #define F_CPU 16000000UL
