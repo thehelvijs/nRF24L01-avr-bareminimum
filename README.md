@@ -42,7 +42,7 @@ if ((strcmp(rx_message,"OFF") == 0))
 ```
 ### Send message
 
-After message is sent, it goes back to listening mode.
+32 byte message can be sent every ~50ms. After message is sent, it goes back to listening mode.
 
 ```
 status = nrf24_send_message(tx_message);
