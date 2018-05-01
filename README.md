@@ -52,7 +52,7 @@ if ((strcmp(rx_message,"OFF") == 0)) led_off();
 ```
 status = nrf24_send_message(tx_message);
 ```
-Where status returns '1' on successful send and 'tx_message' is a string set with <string.h>
+Where 'status' returns '1' on successful send and 'tx_message' is a string set with <string.h>
 ```
 strcpy(tx_message,"Your message here");
 ```
