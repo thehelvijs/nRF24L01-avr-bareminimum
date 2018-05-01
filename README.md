@@ -69,7 +69,6 @@ If auto-acknowledgment is disabled, keep in mind that using lower data rates suc
 uint8_t rx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Read pipe address
 uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define READ_PIPE		0			// Number of read pipe
-#define MESSAGE_LENGTH	32		// 0-32 bytes
 //
 //	-AUTO_ACK can be disabled when running on 2MBPS @ <= 32 byte messages.
 //	-250KBPS and 1MBPS with AUTO_ACK disabled lost many packets
