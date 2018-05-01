@@ -161,7 +161,7 @@ void nrf24_init(void)
 	nrf24_write(EN_AA,&data,1);
 	
 	//	Set retries
-	data = 0xF8;				//	Delay 4000us with 1 re-try (will be added in settings)
+	data = 0xF0;				//	Delay 4000us with 1 re-try (will be added in settings)
 	nrf24_write(SETUP_RETR,&data,1);
 	
 	//	Disable RX addresses
@@ -203,12 +203,21 @@ void nrf24_init(void)
 	(AUTO_ACK << EN_DYN_ACK);
 	nrf24_write(FEATURE,&data,1);
 	
+	// Flush TX/RX
+	//	Clear RX FIFO which will reset interrupt
+	uint8_t data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+	nrf24_write(FLUSH_RX,0,0);
+	nrf24_write(FLUSH_TX,0,0);
+	
 	//	Open pipes
 	nrf24_write(RX_ADDR_P0 + READ_PIPE,rx_address,5);
 	nrf24_write(TX_ADDR,tx_address,5);
 	nrf24_write(EN_RXADDR,&data,1);
 	data |= (1 << READ_PIPE);
 	nrf24_write(EN_RXADDR,&data,1);
+	
+	// Power up chip
+	nrf24_state(POWERUP);
 }
 
 void nrf24_write_ack(void)
@@ -245,7 +254,7 @@ void nrf24_state(uint8_t state)
 		case RECEIVE:
 		data = config_register | (1 << PRIM_RX);
 		nrf24_write(CONFIG,&data,1);
-		
+		//	Clear STATUS register
 		data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 		nrf24_write(STATUS,&data,1);
 		break;
@@ -267,35 +276,37 @@ void nrf24_state(uint8_t state)
 
 void nrf24_start_listening(void)
 {
-	//	Clear STATUS register
-	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
-	nrf24_write(STATUS,&data,1);
-	
-	nrf24_state(POWERUP);				//	Power up chip
 	nrf24_state(RECEIVE);				//	Receive mode
-	if (AUTO_ACK) nrf24_write_ack();	//	Write acknowledgment
+	//if (AUTO_ACK) nrf24_write_ack();	//	Write acknowledgment
 	ce_high;
-	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
-	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
 	_delay_us(150);						//	Settling time
 }
 
-uint8_t nrf24_send_message(char *tx_message)
-{	
-	uint8_t length = strlen(tx_message);//	Message length
-	nrf24_state(POWERUP);				//	Power up chip
-	nrf24_state(TRANSMIT);				//	Transmit mode
-	//	Clear STATUS register
-	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
+uint8_t nrf24_send_message(const void *tx_message)
+{
+	//	Message length
+	uint8_t length = strlen(tx_message);
+
+	//	Transmit mode
+	nrf24_state(TRANSMIT);
+
+	// Flush TX/RX and clear TX interrupt
+	nrf24_write(FLUSH_RX,0,0);
+	nrf24_write(FLUSH_TX,0,0);
+	data = (1 << TX_DS);
 	nrf24_write(STATUS,&data,1);
-	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
-	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
 	
+	// Disable interrupt on RX
+	nrf24_read(CONFIG,&data,1);
+	data |= (1 << MASK_RX_DR);
+	nrf24_write(CONFIG,&data,1);
 	
 	// Start SPI, load message into TX_PAYLOAD
 	csn_low;
-	spi_send(W_TX_PAYLOAD);
+	if (AUTO_ACK) spi_send(W_TX_PAYLOAD);
+	else spi_send(W_TX_PAYLOAD_NOACK);
 	while (length--) spi_send(*(uint8_t *)tx_message++);
+	spi_send(0);
 	csn_high;
 	
 	//	Send message by pulling CE high for more than 10us
@@ -307,10 +318,13 @@ uint8_t nrf24_send_message(char *tx_message)
 	nrf24_read(STATUS,&data,1);
 	while(!(data & (1 << TX_DS))) nrf24_read(STATUS,&data,1);
 	
+	// Enable interrupt on RX
+	nrf24_read(CONFIG,&data,1);
+	data &= ~(1 << MASK_RX_DR);
+	nrf24_write(CONFIG,&data,1);
+
 	//	Continue listening
 	nrf24_start_listening();
-	
-	memset(tx_message,0,32);
 	
 	return 1;
 }
@@ -325,17 +339,32 @@ unsigned int nrf24_available(void)
 
 const char * nrf24_read_message(void)
 {
+	// Message placeholder
 	static char rx_message[32];
 	memset(rx_message,0,32);
+	
+	// Write ACK message
 	if (AUTO_ACK) nrf24_write_ack();
+	
+	// Get length of incoming message
 	nrf24_read(R_RX_PL_WID,&data,1);
-	if (data > 0) nrf24_send_spi(R_RX_PAYLOAD,&rx_message,data);
-	//	Clear RX FIFO which will reset interrupt
-	data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
-	nrf24_write(STATUS,&data,1);
-	nrf24_write(FLUSH_RX,0,0);			//	Flush RX
-	nrf24_write(FLUSH_TX,0,0);			//	Flush TX
+	
+	// Read message
+	if (data > 0) nrf24_send_spi(R_RX_PAYLOAD,&rx_message,data+1);
+
 	// Check if there is message in array
-	if (strlen(rx_message) > 0) return rx_message;
-	return 0;
+	if (strlen(rx_message) > 0)
+	{
+		//	Clear RX interrupt
+		data = (1 << RX_DR);
+		nrf24_write(STATUS,&data,1);
+		
+		return rx_message;
+	}
+	
+	//	Clear RX interrupt
+	data = (1 << RX_DR);
+	nrf24_write(STATUS,&data,1);
+	
+	return "failed";
 }
