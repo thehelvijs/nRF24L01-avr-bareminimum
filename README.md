@@ -24,7 +24,7 @@ For testing I used both Raspberry Pi to Arduino and Arduino to Arduino. Follow t
 ```
 nrf24_start_listening();
 ```
-By default when there is something on RX register, this ISR gets triggered (PD2 pin)
+By default when there is something on RX register, this ISR gets triggered (PD2 --> IRQ)
 ```
 ISR(INT0_vect) 
 ```
