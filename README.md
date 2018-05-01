@@ -103,7 +103,7 @@ uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define IRQ_PIN		DDD2			// IRQ connected to PD2
 ```
 
-## Compiled with
+## IDE used
 
 Atmel Studio 7 (Version: 7.0.1417)
 
