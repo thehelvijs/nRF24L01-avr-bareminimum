@@ -24,9 +24,17 @@ For testing I used both Raspberry Pi to Arduino and Arduino to Arduino. Follow t
 ```
 nrf24_start_listening();
 ```
-By default when there is something on RX register, this ISR gets triggered
+By default when there is something on RX register, this ISR gets triggered (PD2 pin)
 ```
 ISR(INT0_vect) 
+```
+If IRQ won't be used, call
+```
+nrf24_available();
+```
+which will return 1 if message is ready to be read
+```
+if(nrf24_available()) rx_message = nrf24_read_message();
 ```
 Message can be stored in string array, returns '0' if string array is empty
 ```
