@@ -1,4 +1,4 @@
-# Lightweight library for nRF24L01/nRF24L01+ running on AVR architecture (with optional STDIO_UART)
+# Lightweight library for nRF24L01/nRF24L01+ running on AVR architecture (with optional UART)
 
 Bare minimum software developed for nRF24L01/nRF24L01+ RF chip. Software was tested on ATmega328P and ATmega328PB (PB needs few changes in SPI). Can be easily ported to any MCU by adjusting SPI library.
 
