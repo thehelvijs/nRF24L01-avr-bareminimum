@@ -203,8 +203,8 @@ void nrf24_init(void)
 	(AUTO_ACK << EN_DYN_ACK);
 	nrf24_write(FEATURE,&data,1);
 	
-	// Flush TX/RX
-	//	Clear RX FIFO which will reset interrupt
+	// 	Flush TX/RX
+	//	Clear interrupts
 	uint8_t data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 	nrf24_write(FLUSH_RX,0,0);
 	nrf24_write(FLUSH_TX,0,0);
@@ -215,9 +215,6 @@ void nrf24_init(void)
 	nrf24_write(EN_RXADDR,&data,1);
 	data |= (1 << READ_PIPE);
 	nrf24_write(EN_RXADDR,&data,1);
-	
-	// Power up chip
-	nrf24_state(POWERUP);
 }
 
 void nrf24_write_ack(void)
