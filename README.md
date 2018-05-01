@@ -36,21 +36,18 @@ which will return 1 if message is ready to be read
 ```
 if(nrf24_available()) rx_message = nrf24_read_message();
 ```
-Message can be stored in string array, returns '0' if string array is empty
+Message can be stored in string array
 ```
 char rx_message[32];
 strcpy(rx_message,nrf24_read_message());
 ```
 And compared later
 ```
-if ((strcmp(rx_message,"OFF") == 0))
-{
-    led_off();
-}
+if ((strcmp(rx_message,"OFF") == 0)) led_off();
 ```
 ### Send message
 
-32 byte message can be sent every ~50ms. After message is sent, it goes back to listening mode.
+32 byte (character) message can be sent every ~50ms. After message is sent, it goes back to listening mode.
 
 ```
 status = nrf24_send_message(tx_message);
