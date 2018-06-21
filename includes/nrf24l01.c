@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//	Set clock frequency
+// Set clock frequency
 #ifndef F_CPU
 #define F_CPU 16000000UL
 #endif
@@ -32,64 +32,64 @@
 #include <stdbool.h>
 #include <string.h>
 
-//	nRF24L01+ include files
+// nRF24L01+ include files
 #include "nrf24l01.h"
 #include "nrf24l01-mnemonics.h"
 #include "spi.h"
 
-//	Settings
+// Settings
 uint8_t rx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Read pipe address
 uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define READ_PIPE		0									// Number of read pipe
 //
-//	-AUTO_ACK can be disabled when running on 2MBPS @ <= 32 byte messages.
-//	-250KBPS and 1MBPS with AUTO_ACK disabled lost many packets
-//	if the packet size was bigger than 4 bytes.
-//	-If AUTO_ACK is enabled, tx_address = rx_address.
+// -AUTO_ACK can be disabled when running on 2MBPS @ <= 32 byte messages.
+// -250KBPS and 1MBPS with AUTO_ACK disabled lost many packets
+// if the packet size was bigger than 4 bytes.
+// -If AUTO_ACK is enabled, tx_address = rx_address.
 //
 #define AUTO_ACK		false								// Auto acknowledgment
 #define DATARATE		RF_DR_2MBPS							// 250kbps, 1mbps, 2mbps
 #define POWER			POWER_MAX							// Set power (MAX 0dBm..HIGH -6dBm..LOW -12dBm.. MIN -18dBm)
-#define CHANNEL			0x76								// 2.4GHz-2.5GHz channel selection (0x01 - 0x7C)
+#define CHANNEL			0x74								// 2.4GHz-2.5GHz channel selection (0x01 - 0x7C)
 #define DYN_PAYLOAD		true								// Dynamic payload enabled
 #define CONTINUOUS		false								// Continuous carrier transmit mode (not tested)
 //
-//	ISR(INT0_vect) is triggered depending on config (only one can be true)
+// ISR(INT0_vect) is triggered depending on config (only one can be true)
 //
 #define RX_INTERRUPT	true								// Interrupt when message is received (RX)
 #define TX_INTERRUPT	false								// Interrupt when message is sent (TX)
 #define RT_INTERRUPT	false								// Interrupt when maximum re-transmits are reached (MAX_RT)
 //
-//	-PIN map.
-//	-If CE or CSN is changed to different PIN e.g. PC0
-//	then change DDRB -> DDRC, PORTB -> PORTC and so on
+// -PIN map.
+// -If CE or CSN is changed to different PIN e.g. PC0
+// then change DDRB -> DDRC, PORTB -> PORTC and so on
 //
-//	CE
+// CE
 #define CE_DDR		DDRB
 #define CE_PORT		PORTB
 #define CE_PIN		DDB1									// CE connected to PB1
-//	CSN
+// CSN
 #define CSN_DDR		DDRB
 #define CSN_PORT	PORTB
 #define CSN_PIN		DDB2									// CSN connected to PB2
-//	IRQ
+// IRQ
 #define IRQ_DDR		DDRD
 #define IRQ_PORT	PORTD
 #define IRQ_PIN		DDD2									// IRQ connected to PD2
-//	MOSI
+// MOSI
 #define MOSI_DDR	DDRB
 #define MOSI_PORT	PORTB
 #define MOSI_PIN	DDB3
-//	MISO
+// MISO
 #define MISO_DDR	DDRB
 #define MISO_PORT	PORTB
 #define MISO_PIN	DDB4
-//	SCK
+// SCK
 #define SCK_DDR		DDRB
 #define SCK_PORT	PORTB
 #define SCK_PIN		DDB5
 
-//	PIN toggling
+// PIN toggling
 #define setbit(port, bit) (port) |= (1 << (bit))
 #define clearbit(port, bit) (port) &= ~(1 << (bit))
 #define ce_low clearbit(CE_PORT,CE_PIN)
@@ -97,7 +97,7 @@ uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// Write pipe address
 #define csn_low clearbit(CSN_PORT,CSN_PIN)
 #define csn_high setbit(CSN_PORT,CSN_PIN)
 
-//	Used to store SPI commands
+// Used to store SPI commands
 uint8_t data;
 
 uint8_t nrf24_send_spi(uint8_t register_address, void *data, unsigned int bytes)
@@ -123,34 +123,34 @@ uint8_t nrf24_read(uint8_t register_address, uint8_t *data, unsigned int bytes)
 
 void nrf24_init(void)
 {
-	//	Interrupt on falling edge of INT0 (PD2) from IRQ pin
-	cli();					//	Disable interrupts
+	// Interrupt on falling edge of INT0 (PD2) from IRQ pin
+	cli();					// Disable interrupts
 	EICRA |= (1 << ISC01);
 	EIMSK |= (1 << INT0);
-	sei();					//	Enable interrupts
+	sei();					// Enable interrupts
 	
-	//	CSN and CE as outputs and initial states
+	// CSN and CE as outputs and initial states
 	setbit(CE_DDR,CE_PIN);
 	setbit(CSN_DDR,CSN_PIN);
 	csn_high;
 	ce_low;
 	
-	//	Initialize SPI
+	// Initialize SPI
 	spi_master_init();
-	_delay_ms(100);				//	Power on reset 100ms
+	_delay_ms(100);				// Power on reset 100ms
 	
-	//	Start nRF24L01+ config
+	// Start nRF24L01+ config
 	data =
-	(!(RX_INTERRUPT) << MASK_RX_DR) |	//	IRQ interrupt on RX (0 = enabled)
-	(!(TX_INTERRUPT) << MASK_TX_DS) |	//	IRQ interrupt on TX (0 = enabled)
-	(!(RT_INTERRUPT) << MASK_MAX_RT) |	//	IRQ interrupt on auto retransmit counter overflow (0 = enabled)
-	(1 << EN_CRC) |						//	CRC enable
-	(1 << CRC0) |						//	CRC scheme
-	(1 << PWR_UP) |						//	Power up
-	(1 << PRIM_RX);						//	TX/RX select
-	nrf24_write(CONFIG,	&data,1);
+	(!(RX_INTERRUPT) << MASK_RX_DR) |	// IRQ interrupt on RX (0 = enabled)
+	(!(TX_INTERRUPT) << MASK_TX_DS) |	// IRQ interrupt on TX (0 = enabled)
+	(!(RT_INTERRUPT) << MASK_MAX_RT) |	// IRQ interrupt on auto retransmit counter overflow (0 = enabled)
+	(1 << EN_CRC) |						// CRC enable
+	(1 << CRC0) |						// CRC scheme
+	(1 << PWR_UP) |						// Power up
+	(1 << PRIM_RX);						// TX/RX select
+	nrf24_write(CONFIG,&data,1);
 	
-	//	Auto-acknowledge on all pipes
+	// Auto-acknowledge on all pipes
 	data =
 	(AUTO_ACK << ENAA_P5) |
 	(AUTO_ACK << ENAA_P4) |
@@ -160,33 +160,33 @@ void nrf24_init(void)
 	(AUTO_ACK << ENAA_P0);
 	nrf24_write(EN_AA,&data,1);
 	
-	//	Set retries
-	data = 0xF0;				//	Delay 4000us with 1 re-try (will be added in settings)
+	// Set retries
+	data = 0xF0;				// Delay 4000us with 1 re-try (will be added in settings)
 	nrf24_write(SETUP_RETR,&data,1);
 	
-	//	Disable RX addresses
+	// Disable RX addresses
 	data = 0;
 	nrf24_write(EN_RXADDR, &data, 1);
 	
-	//	Set channel
+	// Set channel
 	data = CHANNEL;
 	nrf24_write(RF_CH,&data,1);
 	
-	//	Setup
+	// Setup
 	data =
-	(CONTINUOUS << CONT_WAVE) |					//	Continuous carrier transmit
-	((DATARATE >> RF_DR_HIGH) << RF_DR_HIGH) |	//	Data rate
-	((POWER >> RF_PWR) << RF_PWR);				//	PA level
+	(CONTINUOUS << CONT_WAVE) |					// Continuous carrier transmit
+	((DATARATE >> RF_DR_HIGH) << RF_DR_HIGH) |	// Data rate
+	((POWER >> RF_PWR) << RF_PWR);				// PA level
 	nrf24_write(RF_SETUP,&data,1);
 	
-	//	Status - clear TX/RX FIFO's and MAX_RT by writing 1 into them
+	// Status - clear TX/RX FIFO's and MAX_RT by writing 1 into them
 	data =
-	(1 << RX_DR) |								//	RX FIFO
-	(1 << TX_DS) |								//	TX FIFO
-	(1 << MAX_RT);								//	MAX RT
+	(1 << RX_DR) |								// RX FIFO
+	(1 << TX_DS) |								// TX FIFO
+	(1 << MAX_RT);								// MAX RT
 	nrf24_write(STATUS,&data,1);
 	
-	//	Dynamic payload on all pipes
+	// Dynamic payload on all pipes
 	data =
 	(DYN_PAYLOAD << DPL_P0) |
 	(DYN_PAYLOAD << DPL_P1) |
@@ -196,20 +196,20 @@ void nrf24_init(void)
 	(DYN_PAYLOAD << DPL_P5);
 	nrf24_write(DYNPD, &data,1);
 
-	//	Enable dynamic payload
+	// Enable dynamic payload
 	data =
 	(DYN_PAYLOAD << EN_DPL) |
 	(AUTO_ACK << EN_ACK_PAY) |
 	(AUTO_ACK << EN_DYN_ACK);
 	nrf24_write(FEATURE,&data,1);
 	
-	// 	Flush TX/RX
-	//	Clear interrupts
+	// Flush TX/RX
+	// Clear RX FIFO which will reset interrupt
 	uint8_t data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 	nrf24_write(FLUSH_RX,0,0);
 	nrf24_write(FLUSH_TX,0,0);
 	
-	//	Open pipes
+	// Open pipes
 	nrf24_write(RX_ADDR_P0 + READ_PIPE,rx_address,5);
 	nrf24_write(TX_ADDR,tx_address,5);
 	nrf24_write(EN_RXADDR,&data,1);
@@ -235,7 +235,7 @@ void nrf24_state(uint8_t state)
 	switch (state)
 	{
 		case POWERUP:
-		//	Check if already powered up
+		// Check if already powered up
 		if (!(config_register & (1 << PWR_UP)))
 		{
 			data = config_register | (1 << PWR_UP);
@@ -251,7 +251,7 @@ void nrf24_state(uint8_t state)
 		case RECEIVE:
 		data = config_register | (1 << PRIM_RX);
 		nrf24_write(CONFIG,&data,1);
-		//	Clear STATUS register
+		// Clear STATUS register
 		data = (1 << RX_DR) | (1 << TX_DS) | (1 << MAX_RT);
 		nrf24_write(STATUS,&data,1);
 		break;
@@ -273,18 +273,23 @@ void nrf24_state(uint8_t state)
 
 void nrf24_start_listening(void)
 {
-	nrf24_state(RECEIVE);				//	Receive mode
-	//if (AUTO_ACK) nrf24_write_ack();	//	Write acknowledgment
+	nrf24_state(RECEIVE);				// Receive mode
+	//if (AUTO_ACK) nrf24_write_ack();	// Write acknowledgment
 	ce_high;
-	_delay_us(150);						//	Settling time
+	_delay_us(150);						// Settling time
 }
 
 uint8_t nrf24_send_message(const void *tx_message)
 {
-	//	Message length
+	// For printf();
+	char temp[32];
+	memset(temp,0,32);
+	strcpy(temp,tx_message);
+	
+	// Message length
 	uint8_t length = strlen(tx_message);
 
-	//	Transmit mode
+	// Transmit mode
 	nrf24_state(TRANSMIT);
 
 	// Flush TX/RX and clear TX interrupt
@@ -306,21 +311,22 @@ uint8_t nrf24_send_message(const void *tx_message)
 	spi_send(0);
 	csn_high;
 	
-	//	Send message by pulling CE high for more than 10us
+	// Send message by pulling CE high for more than 10us
 	ce_high;
 	_delay_us(15);
 	ce_low;
 	
-	//	Wait for message to be sent (TX_DS flag raised)
+	// Wait for message to be sent (TX_DS flag raised)
 	nrf24_read(STATUS,&data,1);
 	while(!(data & (1 << TX_DS))) nrf24_read(STATUS,&data,1);
+	printf("Message sent: %s\n",temp);
 	
 	// Enable interrupt on RX
 	nrf24_read(CONFIG,&data,1);
 	data &= ~(1 << MASK_RX_DR);
 	nrf24_write(CONFIG,&data,1);
-
-	//	Continue listening
+	
+	// Continue listening
 	nrf24_start_listening();
 	
 	return 1;
@@ -352,14 +358,14 @@ const char * nrf24_read_message(void)
 	// Check if there is message in array
 	if (strlen(rx_message) > 0)
 	{
-		//	Clear RX interrupt
+		// Clear RX interrupt
 		data = (1 << RX_DR);
 		nrf24_write(STATUS,&data,1);
 		
 		return rx_message;
 	}
 	
-	//	Clear RX interrupt
+	// Clear RX interrupt
 	data = (1 << RX_DR);
 	nrf24_write(STATUS,&data,1);
 	
